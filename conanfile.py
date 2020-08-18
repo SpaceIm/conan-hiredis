@@ -20,7 +20,7 @@ class HiredisConan(ConanFile):
     default_options = {
         "shared": False,
         "fPIC": True,
-        "with_ssl": False
+        "with_ssl": True
     }
 
     _cmake = None
