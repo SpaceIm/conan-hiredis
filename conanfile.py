@@ -9,7 +9,7 @@ class HiredisConan(ConanFile):
     topics = ("conan", "hiredis", "redis", "client", "database")
     homepage = "https://github.com/redis/hiredis"
     url = "https://github.com/conan-io/conan-center-index"
-    exports_sources = "CMakeLists.txt"
+    exports_sources = ["CMakeLists.txt", "patches/**"]
     generators = "cmake", "cmake_find_package"
     settings = "os", "arch", "compiler", "build_type"
     options = {
@@ -52,15 +52,8 @@ class HiredisConan(ConanFile):
         os.rename(self.name + "-" + self.version, self._source_subfolder)
 
     def build(self):
-        tools.replace_in_file(os.path.join(self._source_subfolder, "CMakeLists.txt"),
-                              "ADD_LIBRARY(hiredis SHARED ${hiredis_sources})",
-                              "ADD_LIBRARY(hiredis ${hiredis_sources})")
-        tools.replace_in_file(os.path.join(self._source_subfolder, "CMakeLists.txt"),
-                              "ADD_LIBRARY(hiredis_ssl SHARED",
-                              "ADD_LIBRARY(hiredis_ssl")
-        tools.replace_in_file(os.path.join(self._source_subfolder, "CMakeLists.txt"),
-                              "TARGET_LINK_LIBRARIES(hiredis_ssl PRIVATE ${OPENSSL_LIBRARIES})",
-                              "TARGET_LINK_LIBRARIES(hiredis_ssl PRIVATE OpenSSL::SSL)")
+        for patch in self.conan_data.get("patches", {}).get(self.version, []):
+            tools.patch(**patch)
         cmake = self._configure_cmake()
         cmake.build()
 
@@ -95,4 +88,6 @@ class HiredisConan(ConanFile):
             self.cpp_info.components["hiredis_ssl"].names["cmake_find_package_multi"] = "hiredis_ssl"
             self.cpp_info.components["hiredis_ssl"].names["pkg_config"] = "hiredis_ssl"
             self.cpp_info.components["hiredis_ssl"].libs = ["hiredis_ssl"]
-            self.cpp_info.components["hiredis_ssl"].requires = ["hiredislib", "openssl::ssl"]
+            self.cpp_info.components["hiredis_ssl"].requires = ["openssl::ssl"]
+            if self.settings.os == "Windows":
+                self.cpp_info.components["hiredis_ssl"].requires.append("hiredislib")
